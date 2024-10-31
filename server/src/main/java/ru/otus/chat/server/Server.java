@@ -22,6 +22,8 @@ public class Server {
         return authenticatedProvider;
     }
 
+    public List<ClientHandler> getClients() {return clients;}
+
     public void start() {
         try (ServerSocket serverSocket = new ServerSocket(port)) {
             System.out.println("Сервер запущен на порту: " + port);
@@ -55,5 +57,21 @@ public class Server {
             }
         }
         return false;
+    }
+
+    public ClientHandler getClientByUsername(String username) {
+        for (ClientHandler client : clients) {
+            if (client.getUsername().equals(username)) {
+                return client;
+            }
+        }
+        return null;
+    }
+
+    public void kick(ClientHandler client, String username) {
+        if (client.getRole().contentEquals("ADMIN")) {
+            client.sendMessage("Администратор отключил пользователя " + username + " от чата.");
+            getClientByUsername(username).disconnect();
+        } else client.sendMessage("У Вас нет администраторских прав.");
     }
 }
