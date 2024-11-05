@@ -1,33 +1,22 @@
 package ru.otus.chat.server;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
 public class InMemoryAuthenticationProvider implements AuthenticatedProvider {
-    private class User {
-        private String login;
-        private String password;
-        private String username;
-        private String role;
-
-        public User(String login, String password, String username, String role) {
-            this.login = login;
-            this.password = password;
-            this.username = username;
-            this.role = role;
-        }
-    }
 
     private Server server;
+    private UsersJdbc usersJdbc;
     private List<User> users;
+    int id;
 
-    public InMemoryAuthenticationProvider(Server server) {
+    public InMemoryAuthenticationProvider(Server server) throws SQLException {
         this.server = server;
+        this.usersJdbc = new UsersJdbc();
         this.users = new ArrayList<>();
-        this.users.add(new User("login1", "password1", "username1", "ADMIN"));
-        this.users.add(new User("qwe", "qwe", "qwe1", "USER"));
-        this.users.add(new User("asd", "asd", "asd1", "USER"));
-        this.users.add(new User("zxc", "zxc", "zxc1", "USER"));
+        users = usersJdbc.getAll();
+        this.id = users.toArray().length + 1;
     }
 
     @Override
@@ -36,18 +25,18 @@ public class InMemoryAuthenticationProvider implements AuthenticatedProvider {
     }
 
     private String getUsernameByLoginAndPassword(String login, String password) {
-        for (User user : users) {
-            if (user.login.equals(login) && user.password.equals(password)) {
-                return user.username;
+        for (User user : usersJdbc.getAll()) {
+            if (user.getLogin().equals(login) && user.getPassword().equals(password)) {
+                return user.getUsername();
             }
         }
         return null;
     }
 
     private String getRoleByLoginAndPassword(String login, String password) {
-        for (User user : users) {
-            if (user.login.equals(login) && user.password.equals(password)) {
-                return user.role;
+        for (User user : usersJdbc.getAll()) {
+            if (user.getLogin().equals(login) && user.getPassword().equals(password)) {
+                return user.getRole();
             }
         }
         return null;
@@ -66,7 +55,6 @@ public class InMemoryAuthenticationProvider implements AuthenticatedProvider {
             clientHandler.sendMessage("Учетная запись уже занята");
             return false;
         }
-
         clientHandler.setUsername(authName);
         clientHandler.setRole(authRole);
         server.subscribe(clientHandler);
@@ -75,8 +63,8 @@ public class InMemoryAuthenticationProvider implements AuthenticatedProvider {
     }
 
     private boolean isLoginAlreadyExist(String login) {
-        for (User user : users) {
-            if (user.login.equals(login)) {
+        for (User user : usersJdbc.getAll()) {
+            if (user.getLogin().equals(login)) {
                 return true;
             }
         }
@@ -84,8 +72,8 @@ public class InMemoryAuthenticationProvider implements AuthenticatedProvider {
     }
 
     private boolean isUsernameAlreadyExist(String username) {
-        for (User user : users) {
-            if (user.username.equals(username)) {
+        for (User user : usersJdbc.getAll()) {
+            if (user.getUsername().equals(username)) {
                 return true;
             }
         }
@@ -108,7 +96,8 @@ public class InMemoryAuthenticationProvider implements AuthenticatedProvider {
             clientHandler.sendMessage("Указанное имя пользователя уже занято");
             return false;
         }
-        users.add(new User(login, password, username, role));
+        users.add(new User(id, login, password, username, role));
+        id++;
         clientHandler.setUsername(username);
         server.subscribe(clientHandler);
         clientHandler.sendMessage("/regok " + username);
